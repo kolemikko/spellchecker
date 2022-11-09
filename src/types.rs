@@ -20,7 +20,7 @@ pub struct SpellChecker {
 
 impl SpellChecker {
     pub fn new() -> Self {
-        let reg = Regex::new(r"[A-Z]{1}[a-z]+|[\\bA-Za-z\\b]+").unwrap();
+        let reg = Regex::new(r"[\\bA-Za-z)\\'’-]+").unwrap();
         let (data, t_count) = read_database_from_file();
         Self {
             database: data,
@@ -30,7 +30,7 @@ impl SpellChecker {
     }
 
     pub fn train(&mut self, text: &str) {
-        for word in self.regex.find_iter(&text.to_lowercase()) {
+        for word in self.regex.find_iter(&text.to_lowercase().replace("’", "'")) {
             let count = self.database.entry(word.as_str().to_string()).or_insert(0);
             *count += 1;
         }
@@ -39,9 +39,12 @@ impl SpellChecker {
     pub fn check(&mut self, text: &str) -> Result<Vec<String>, Error> {
         // println!("{}", text);
         let mut not_found: Vec<String> = Vec::new();
-        for word in self.regex.find_iter(&text.to_lowercase()) {
+        for word in self.regex.find_iter(&text.to_lowercase().replace("’", "'")) {
             // println!("- {}", word.as_str());
-            if word.as_str().chars().all(char::is_numeric) || word.as_str().is_empty() {
+            if word.as_str().chars().all(char::is_numeric)
+                || !word.as_str().chars().all(char::is_alphabetic)
+                || word.as_str().is_empty()
+            {
                 continue;
             }
             if !self.database.contains_key(word.as_str()) {

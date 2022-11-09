@@ -1,30 +1,44 @@
 mod errors;
 mod types;
-use std::error::Error;
+use std::{
+    error::Error,
+    fs::File,
+    io::{prelude::*, BufReader},
+};
 use types::SpellChecker;
 
 const INPUT_FILE: &str = "loc_test.csv";
+const TRAINING_FILE: &str = "words.txt";
 
 fn train_with_file(filepath: &str, index: Option<usize>) -> Result<(), Box<dyn Error>> {
     let mut spell = SpellChecker::new();
-    let mut reader = csv::ReaderBuilder::new()
-        .has_headers(false)
-        .from_path(filepath)?;
-    for result in reader.records() {
-        let record = result?;
-        match index {
-            Some(s) => {
-                if let Some(r) = record.get(s) {
-                    spell.train(r);
-                }
-            }
-            None => {
-                for idx in 0..record.len() {
-                    if let Some(r) = record.get(idx) {
+    if filepath.contains(".csv") {
+        let mut reader = csv::ReaderBuilder::new()
+            .has_headers(false)
+            .from_path(filepath)?;
+        for result in reader.records() {
+            let record = result?;
+            match index {
+                Some(s) => {
+                    if let Some(r) = record.get(s) {
                         spell.train(r);
                     }
                 }
+                None => {
+                    for idx in 0..record.len() {
+                        if let Some(r) = record.get(idx) {
+                            spell.train(r);
+                        }
+                    }
+                }
             }
+        }
+    } else if filepath.contains(".txt") {
+        let file = File::open(filepath)?;
+        let reader = BufReader::new(file);
+
+        for line in reader.lines().flatten() {
+            spell.train(&line);
         }
     }
     // spell.print_database_with_threshold(1);
@@ -74,6 +88,15 @@ fn check_file(filepath: &str, index: Option<usize>) -> Result<Vec<String>, Box<d
 }
 
 fn main() {
+    // let result = train_with_file(TRAINING_FILE, None);
+    // match result {
+    //     Ok(res) => {
+    //         println!("Done.");
+    //     }
+    //     Err(e) => {
+    //         println!("{}", e);
+    //     }
+    // }
     let result = check_file(INPUT_FILE, Some(2));
     match result {
         Ok(res) => {
