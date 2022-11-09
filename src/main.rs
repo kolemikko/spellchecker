@@ -1,3 +1,4 @@
+mod errors;
 mod types;
 use std::error::Error;
 use types::SpellChecker;
@@ -12,19 +13,15 @@ fn train_with_file(filepath: &str, index: Option<usize>) -> Result<(), Box<dyn E
     for result in reader.records() {
         let record = result?;
         match index {
-            Some(s) => match record.get(s) {
-                Some(r) => {
+            Some(s) => {
+                if let Some(r) = record.get(s) {
                     spell.train(r);
                 }
-                None => {}
-            },
+            }
             None => {
                 for idx in 0..record.len() {
-                    match record.get(idx) {
-                        Some(r) => {
-                            spell.train(r);
-                        }
-                        None => {}
+                    if let Some(r) = record.get(idx) {
+                        spell.train(r);
                     }
                 }
             }
@@ -43,31 +40,31 @@ fn check_file(filepath: &str, index: Option<usize>) -> Result<Vec<String>, Box<d
     for result in reader.records() {
         let record = result?;
         match index {
-            Some(s) => match record.get(s) {
-                Some(r) => {
-                    let found = spell.check(r);
-                    match found {
-                        false => {
-                            not_found_words.push(r.to_string());
+            Some(s) => {
+                if let Some(r) = record.get(s) {
+                    let not_found = spell.check(r);
+                    match not_found {
+                        Ok(res) => {
+                            not_found_words.extend(res);
                         }
-                        true => {}
+                        Err(e) => {
+                            // println!("{}", e);
+                        }
                     }
                 }
-                None => {}
-            },
+            }
             None => {
                 for idx in 0..record.len() {
-                    match record.get(idx) {
-                        Some(r) => {
-                            let found = spell.check(r);
-                            match found {
-                                false => {
-                                    not_found_words.push(r.to_string());
-                                }
-                                true => {}
+                    if let Some(r) = record.get(idx) {
+                        let not_found = spell.check(r);
+                        match not_found {
+                            Ok(res) => {
+                                not_found_words.extend(res);
+                            }
+                            Err(e) => {
+                                // println!("{}", e);
                             }
                         }
-                        None => {}
                     }
                 }
             }
@@ -80,10 +77,10 @@ fn main() {
     let result = check_file(INPUT_FILE, Some(2));
     match result {
         Ok(res) => {
+            println!("\nWords with possible typos:\n");
             for w in res {
                 println!("{}", w);
             }
-            println!("Done.");
         }
         Err(e) => {
             println!("{}", e);

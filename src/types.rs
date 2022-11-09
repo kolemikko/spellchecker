@@ -1,3 +1,4 @@
+use super::errors::Error;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -35,19 +36,25 @@ impl SpellChecker {
         }
     }
 
-    pub fn check(&mut self, text: &str) -> bool {
-        println!("{}", text);
-        let mut found = false;
+    pub fn check(&mut self, text: &str) -> Result<Vec<String>, Error> {
+        // println!("{}", text);
+        let mut not_found: Vec<String> = Vec::new();
         for word in self.regex.find_iter(&text.to_lowercase()) {
-            println!("- {}", word.as_str());
+            // println!("- {}", word.as_str());
             if word.as_str().chars().all(char::is_numeric) || word.as_str().is_empty() {
                 continue;
             }
-            if self.database.contains_key(word.as_str()) {
-                found = true;
+            if !self.database.contains_key(word.as_str()) {
+                // println!("{}", word.as_str());
+                not_found.push(word.as_str().to_string());
             }
         }
-        found
+
+        if not_found.is_empty() {
+            Err(Error::NoRegexMatches)
+        } else {
+            Ok(not_found)
+        }
     }
 
     pub fn increase_training_count(&mut self) {
