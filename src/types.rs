@@ -89,14 +89,33 @@ impl SpellChecker {
     }
 }
 
+fn create_new_database_file() {
+    let mut wtr = csv::Writer::from_path(DATABASE_FILE).unwrap();
+    wtr.serialize(Entry {
+        word: String::new(),
+        instances: Some(0),
+        training_count: Some(0),
+    })
+    .unwrap();
+    wtr.flush().unwrap();
+}
+
 fn read_database_from_file() -> (HashMap<String, u32>, u32) {
-    let mut reader = csv::Reader::from_path(DATABASE_FILE).unwrap();
-    let mut database: HashMap<String, u32> = HashMap::new();
-    let mut training_count: u32 = 0;
-    for result in reader.deserialize() {
-        let record: Entry = result.unwrap();
-        database.insert(record.word, record.instances.unwrap());
-        training_count = record.training_count.unwrap();
+    let reader = csv::Reader::from_path(DATABASE_FILE);
+    match reader {
+        Err(_) => {
+            create_new_database_file();
+            return read_database_from_file();
+        }
+        Ok(mut rea) => {
+            let mut database: HashMap<String, u32> = HashMap::new();
+            let mut training_count: u32 = 0;
+            for result in rea.deserialize() {
+                let record: Entry = result.unwrap();
+                database.insert(record.word, record.instances.unwrap());
+                training_count = record.training_count.unwrap();
+            }
+            return (database, training_count);
+        }
     }
-    (database, training_count)
 }
