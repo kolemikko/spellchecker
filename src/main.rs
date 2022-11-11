@@ -84,6 +84,9 @@ fn check_file(filepath: &str, index: Option<usize>) -> Result<Vec<String>, Box<d
             }
         }
     }
+    spell.gather_learnings();
+    spell.increase_training_count();
+    spell.write_database_to_file();
     Ok(not_found_words)
 }
 

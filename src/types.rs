@@ -14,6 +14,7 @@ struct Entry {
 
 pub struct SpellChecker {
     database: HashMap<String, u32>,
+    learnings: HashMap<String, u32>,
     training_count: u32,
     regex: Regex,
 }
@@ -24,22 +25,33 @@ impl SpellChecker {
         let (data, t_count) = read_database_from_file();
         Self {
             database: data,
+            learnings: HashMap::new(),
             training_count: t_count,
             regex: reg,
         }
     }
 
     pub fn train(&mut self, text: &str) {
-        for word in self.regex.find_iter(&text.to_lowercase().replace("’", "'")) {
+        for word in self.regex.find_iter(&text.to_lowercase().replace('’', "'")) {
             let count = self.database.entry(word.as_str().to_string()).or_insert(0);
             *count += 1;
+        }
+    }
+
+    pub fn gather_learnings(&mut self) {
+        for word in &self.learnings {
+            if word.1 > &3 {
+                println!("Adding [{}] to the database.", word.0);
+                let count = self.database.entry(word.0.clone()).or_insert(0);
+                *count += 1;
+            }
         }
     }
 
     pub fn check(&mut self, text: &str) -> Result<Vec<String>, Error> {
         // println!("{}", text);
         let mut not_found: Vec<String> = Vec::new();
-        for word in self.regex.find_iter(&text.to_lowercase().replace("’", "'")) {
+        for word in self.regex.find_iter(&text.to_lowercase().replace('’', "'")) {
             // println!("- {}", word.as_str());
             if word.as_str().chars().all(char::is_numeric)
                 || !word.as_str().chars().all(char::is_alphabetic)
@@ -49,6 +61,8 @@ impl SpellChecker {
             }
             if !self.database.contains_key(word.as_str()) {
                 // println!("{}", word.as_str());
+                let count = self.learnings.entry(word.as_str().to_string()).or_insert(0);
+                *count += 1;
                 not_found.push(word.as_str().to_string());
             }
         }
@@ -108,7 +122,7 @@ fn read_database_from_file() -> (HashMap<String, u32>, u32) {
     match reader {
         Err(_) => {
             create_new_database_file();
-            return read_database_from_file();
+            read_database_from_file()
         }
         Ok(mut rea) => {
             let mut database: HashMap<String, u32> = HashMap::new();
@@ -118,7 +132,7 @@ fn read_database_from_file() -> (HashMap<String, u32>, u32) {
                 database.insert(record.word, record.instances.unwrap());
                 training_count = record.training_count.unwrap();
             }
-            return (database, training_count);
+            (database, training_count)
         }
     }
 }
