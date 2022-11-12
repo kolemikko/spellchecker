@@ -9,61 +9,40 @@ const DATABASE_FILE: &str = "wordlist.csv";
 struct Entry {
     word: String,
     instances: Option<u32>,
-    training_count: Option<u32>,
 }
 
-pub struct SpellChecker {
+pub struct Spellchecker {
     database: HashMap<String, u32>,
-    learnings: HashMap<String, u32>,
-    training_count: u32,
     regex: Regex,
 }
 
-impl SpellChecker {
+impl Spellchecker {
     pub fn new() -> Self {
         let reg = Regex::new(r"[\\bA-Za-z)\\'’-]+").unwrap();
-        let (data, t_count) = read_database_from_file();
+        let data = read_database_from_file();
         Self {
             database: data,
-            learnings: HashMap::new(),
-            training_count: t_count,
             regex: reg,
         }
     }
 
-    pub fn train(&mut self, text: &str) {
-        for word in self.regex.find_iter(&text.to_lowercase().replace('’', "'")) {
-            let count = self.database.entry(word.as_str().to_string()).or_insert(0);
-            *count += 1;
-        }
-    }
-
-    pub fn gather_learnings(&mut self) {
-        for word in &self.learnings {
-            if word.1 > &3 {
-                println!("Adding [{}] to the database.", word.0);
-                let count = self.database.entry(word.0.clone()).or_insert(0);
-                *count += 1;
-            }
-        }
-    }
-
-    pub fn check(&mut self, text: &str) -> Result<Vec<String>, Error> {
-        // println!("{}", text);
+    pub fn read(&mut self, text: &str) -> Result<Vec<String>, Error> {
         let mut not_found: Vec<String> = Vec::new();
         for word in self.regex.find_iter(&text.to_lowercase().replace('’', "'")) {
-            // println!("- {}", word.as_str());
             if word.as_str().chars().all(char::is_numeric)
                 || !word.as_str().chars().all(char::is_alphabetic)
                 || word.as_str().is_empty()
             {
                 continue;
             }
-            if !self.database.contains_key(word.as_str()) {
-                // println!("{}", word.as_str());
-                let count = self.learnings.entry(word.as_str().to_string()).or_insert(0);
-                *count += 1;
-                not_found.push(word.as_str().to_string());
+
+            let count = self.database.entry(word.as_str().to_string()).or_insert(0);
+            *count += 1;
+
+            if let Some(value) = self.database.get(word.as_str()) {
+                if value < &5 {
+                    not_found.push(word.as_str().to_string());
+                }
             }
         }
 
@@ -72,10 +51,6 @@ impl SpellChecker {
         } else {
             Ok(not_found)
         }
-    }
-
-    pub fn increase_training_count(&mut self) {
-        self.training_count += 1;
     }
 
     pub fn print_database(&self) {
@@ -98,7 +73,6 @@ impl SpellChecker {
             wtr.serialize(Entry {
                 word: i.0.to_string(),
                 instances: Some(*i.1),
-                training_count: Some(self.training_count),
             })
             .unwrap();
         }
@@ -111,13 +85,12 @@ fn create_new_database_file() {
     wtr.serialize(Entry {
         word: String::new(),
         instances: Some(0),
-        training_count: Some(0),
     })
     .unwrap();
     wtr.flush().unwrap();
 }
 
-fn read_database_from_file() -> (HashMap<String, u32>, u32) {
+fn read_database_from_file() -> HashMap<String, u32> {
     let reader = csv::Reader::from_path(DATABASE_FILE);
     match reader {
         Err(_) => {
@@ -126,13 +99,11 @@ fn read_database_from_file() -> (HashMap<String, u32>, u32) {
         }
         Ok(mut rea) => {
             let mut database: HashMap<String, u32> = HashMap::new();
-            let mut training_count: u32 = 0;
             for result in rea.deserialize() {
                 let record: Entry = result.unwrap();
                 database.insert(record.word, record.instances.unwrap());
-                training_count = record.training_count.unwrap();
             }
-            (database, training_count)
+            database
         }
     }
 }
