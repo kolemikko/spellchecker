@@ -39,8 +39,15 @@ impl Spellchecker {
             let count = self.database.entry(word.as_str().to_string()).or_insert(0);
             *count += 1;
 
-            if let Some(value) = self.database.get(word.as_str()) {
-                if value < &5 {
+            if let Some(val) = self.database.get(word.as_str()) {
+                let value = usize::try_from(val.to_owned()).unwrap();
+                if value < ((self.database.len() / 100) as f32 * 0.1) as usize {
+                    // println!(
+                    //     "{} - {} : {}",
+                    //     self.database.len(),
+                    //     word.as_str(),
+                    //     (self.database.len() / 100) as f32 * value as f32
+                    // );
                     not_found.push(word.as_str().to_string());
                 }
             }
