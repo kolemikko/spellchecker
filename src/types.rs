@@ -18,7 +18,7 @@ pub struct Spellchecker {
 
 impl Spellchecker {
     pub fn new() -> Self {
-        let reg = Regex::new(r"[\\bA-Za-z)\\'’-]+").unwrap();
+        let reg = Regex::new(r"[\\bA-Za-z\\'’-]+").unwrap();
         let data = read_database_from_file();
         Self {
             database: data,
@@ -27,7 +27,7 @@ impl Spellchecker {
     }
 
     pub fn read(&mut self, text: &str) -> Result<Vec<String>, Error> {
-        let mut not_found: Vec<String> = Vec::new();
+        let mut possible_typos: Vec<String> = Vec::new();
         for word in self.regex.find_iter(&text.to_lowercase().replace('’', "'")) {
             if word.as_str().chars().all(char::is_numeric)
                 || !word.as_str().chars().all(char::is_alphabetic)
@@ -42,15 +42,15 @@ impl Spellchecker {
             if let Some(val) = self.database.get(word.as_str()) {
                 let value = usize::try_from(val.to_owned()).unwrap();
                 if value < ((self.database.len() / 100) as f32 * 0.05) as usize {
-                    not_found.push(word.as_str().to_string());
+                    possible_typos.push(word.as_str().to_string());
                 }
             }
         }
 
-        if not_found.is_empty() {
+        if possible_typos.is_empty() {
             Err(Error::NoRegexMatches)
         } else {
-            Ok(not_found)
+            Ok(possible_typos)
         }
     }
 

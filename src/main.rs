@@ -8,10 +8,9 @@ use std::{
 use types::Spellchecker;
 
 const INPUT_FILE: &str = "loc_test.csv";
-const TRAINING_FILE: &str = "words.txt";
 
 fn read_file(filepath: &str, index: Option<usize>) -> Result<Vec<String>, Box<dyn Error>> {
-    let mut not_found_words: Vec<String> = Vec::new();
+    let mut suspicious_words: Vec<String> = Vec::new();
     let mut spell = Spellchecker::new();
     if filepath.contains(".csv") {
         let mut reader = csv::ReaderBuilder::new().from_path(filepath)?;
@@ -20,10 +19,10 @@ fn read_file(filepath: &str, index: Option<usize>) -> Result<Vec<String>, Box<dy
             match index {
                 Some(s) => {
                     if let Some(r) = record.get(s) {
-                        let not_found = spell.read(r);
-                        match not_found {
+                        let result = spell.read(r);
+                        match result {
                             Ok(res) => {
-                                not_found_words.extend(res);
+                                suspicious_words.extend(res);
                             }
                             Err(e) => {
                                 // println!("{}", e);
@@ -34,10 +33,10 @@ fn read_file(filepath: &str, index: Option<usize>) -> Result<Vec<String>, Box<dy
                 None => {
                     for idx in 0..record.len() {
                         if let Some(r) = record.get(idx) {
-                            let not_found = spell.read(r);
-                            match not_found {
+                            let result = spell.read(r);
+                            match result {
                                 Ok(res) => {
-                                    not_found_words.extend(res);
+                                    suspicious_words.extend(res);
                                 }
                                 Err(e) => {
                                     // println!("{}", e);
@@ -53,10 +52,10 @@ fn read_file(filepath: &str, index: Option<usize>) -> Result<Vec<String>, Box<dy
         let reader = BufReader::new(file);
 
         for line in reader.lines().flatten() {
-            let not_found = spell.read(&line);
-            match not_found {
+            let result = spell.read(&line);
+            match result {
                 Ok(res) => {
-                    not_found_words.extend(res);
+                    suspicious_words.extend(res);
                 }
                 Err(e) => {
                     // println!("{}", e);
@@ -65,7 +64,7 @@ fn read_file(filepath: &str, index: Option<usize>) -> Result<Vec<String>, Box<dy
         }
     }
     spell.write_database_to_file();
-    Ok(not_found_words)
+    Ok(suspicious_words)
 }
 
 fn main() {
