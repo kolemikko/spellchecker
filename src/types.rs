@@ -41,13 +41,7 @@ impl Spellchecker {
 
             if let Some(val) = self.database.get(word.as_str()) {
                 let value = usize::try_from(val.to_owned()).unwrap();
-                if value < ((self.database.len() / 100) as f32 * 0.1) as usize {
-                    // println!(
-                    //     "{} - {} : {}",
-                    //     self.database.len(),
-                    //     word.as_str(),
-                    //     (self.database.len() / 100) as f32 * value as f32
-                    // );
+                if value < ((self.database.len() / 100) as f32 * 0.05) as usize {
                     not_found.push(word.as_str().to_string());
                 }
             }
