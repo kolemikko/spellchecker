@@ -54,6 +54,11 @@ impl Spellchecker {
         }
     }
 
+    pub fn add_word_to_database(&mut self, word: String) {
+        let count = self.database.entry(word).or_insert(0);
+        *count += 1;
+    }
+
     pub fn print_database(&self) {
         for i in self.database.iter() {
             println!("{} : {}", i.0, i.1);
